@@ -1,6 +1,0 @@
-fastapi
-uvicorn[standard]
-requests
-numpy
-python-dotenv
-opencv-python-headless
