@@ -126,7 +126,16 @@ def request_sentinel_data(
         max_cloud,
     )
 
-    response = requests.post(
+        response = requests.post(
         CDSE_PROCESS_URL,
         headers={
-            "Authorization":
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
+        },
+        json=request_body,
+        timeout=120,
+    )
+
+    response.raise_for_status()
+
+    return response
