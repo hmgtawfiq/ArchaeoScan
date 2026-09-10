@@ -1,55 +1,52 @@
-def temporal_analysis(current_data, previous_data):
+def temporal_difference(current, previous):
+    """حساب الفرق بين القياس الحالي والسابق."""
+    return current - previous
+
+
+def temporal_change(current, previous):
+    """حساب نسبة التغير بين قياسين."""
+    if previous == 0:
+        return 0.0
+
+    return (current - previous) / abs(previous)
+
+
+def temporal_analysis(
+    current_values,
+    previous_values,
+):
     """
-    مقارنة أولية بين بيانات حالية وبيانات سابقة.
+    تحليل التغير الزمني بين مجموعتين من القيم.
     """
 
-    if current_data is None or previous_data is None:
-        return {
-            "score": None,
-            "status": "no_data"
-        }
-
-    try:
-        import numpy as np
-
-        current = np.asarray(
-            current_data,
-            dtype=float
+    if len(current_values) != len(previous_values):
+        raise ValueError(
+            "Current and previous datasets must have the same length."
         )
 
-        previous = np.asarray(
-            previous_data,
-            dtype=float
-        )
+    differences = [
+        temporal_difference(current, previous)
+        for current, previous
+        in zip(current_values, previous_values)
+    ]
 
-        if current.size == 0 or previous.size == 0:
-            return {
-                "score": None,
-                "status": "empty_data"
-            }
+    changes = [
+        temporal_change(current, previous)
+        for current, previous
+        in zip(current_values, previous_values)
+    ]
 
-        difference = np.nanmean(
-            np.abs(current - previous)
-        )
-
-        score = max(
-            0.0,
-            min(
-                100.0,
-                float(difference) * 100
-            )
-        )
-
-        return {
-            "score": round(score, 1),
-            "status": "ok",
-            "change": float(difference)
-        }
-
-    except Exception as exc:
-
-        return {
-            "score": None,
-            "status": "error",
-            "error": str(exc)
-        }
+    return {
+        "differences": differences,
+        "changes": changes,
+        "mean_difference": (
+            sum(differences) / len(differences)
+            if differences
+            else 0.0
+        ),
+        "mean_change": (
+            sum(changes) / len(changes)
+            if changes
+            else 0.0
+        ),
+    }
