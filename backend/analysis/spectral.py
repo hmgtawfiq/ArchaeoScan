@@ -1,5 +1,5 @@
 def _safe_index(a, b):
-    """حساب مؤشر (A-B)/(A+B) مع تجنب القسمة على صفر."""
+    """حساب (A-B)/(A+B) مع تجنب القسمة على صفر."""
     denominator = a + b
 
     if denominator == 0:
@@ -9,18 +9,18 @@ def _safe_index(a, b):
 
 
 def ndvi(red, nir):
-    """Normalized Difference Vegetation Index."""
+    """مؤشر الغطاء النباتي NDVI."""
     return _safe_index(nir, red)
 
 
 def ndwi(green, nir):
-    """Normalized Difference Water Index."""
+    """مؤشر المياه NDWI."""
     return _safe_index(green, nir)
 
 
-def ndbi(swir, nir):
-    """Normalized Difference Built-up Index."""
-    return _safe_index(swir, nir)
+def ndbi(swir1, nir):
+    """مؤشر المناطق المبنية NDBI."""
+    return _safe_index(swir1, nir)
 
 
 def spectral_analysis(
@@ -32,11 +32,11 @@ def spectral_analysis(
     swir2,
 ):
     """
-    حساب مجموعة من المؤشرات الطيفية الأساسية
+    حساب المؤشرات الطيفية الأساسية
     من نطاقات Sentinel-2.
     """
 
-    return {
+    values = {
         "ndvi": ndvi(red, nir),
         "ndwi": ndwi(green, nir),
         "ndbi": ndbi(swir1, nir),
@@ -44,3 +44,5 @@ def spectral_analysis(
             blue + green + red + nir + swir1 + swir2
         ) / 6.0,
     }
+
+    return values
