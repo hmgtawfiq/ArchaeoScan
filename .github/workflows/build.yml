@@ -34,6 +34,28 @@ jobs:
           python -c "from analysis.spectral import spectral_analysis; from analysis.temporal import temporal_analysis; from analysis.geometry import geometry_analysis; from analysis.scoring import calculate_final_score; print('ArchaeoScan engine OK')"
 
       - name: Test Copernicus authentication
+            - name: Test Sentinel-2 data request
+        working-directory: backend
+        env:
+          CDSE_CLIENT_ID: ${{ secrets.CDSE_CLIENT_ID }}
+          CDSE_CLIENT_SECRET: ${{ secrets.CDSE_CLIENT_SECRET }}
+        run: |
+          python - <<'PY'
+          from satellite.copernicus import request_sentinel_data
+
+          response = request_sentinel_data(
+              latitude=33.7204130,
+              longitude=36.5563628,
+              radius_m=500,
+              start_date="2026-08-01",
+              end_date="2026-09-01",
+              max_cloud=20,
+          )
+
+          print("Sentinel-2 data request OK")
+          print("HTTP status:", response.status_code)
+          print("Data size:", len(response.content), "bytes")
+          PY
         working-directory: backend
         env:
           CDSE_CLIENT_ID: ${{ secrets.CDSE_CLIENT_ID }}
