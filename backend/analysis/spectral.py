@@ -1,50 +1,46 @@
-def spectral_analysis(data):
+def _safe_index(a, b):
+    """حساب مؤشر (A-B)/(A+B) مع تجنب القسمة على صفر."""
+    denominator = a + b
+
+    if denominator == 0:
+        return 0.0
+
+    return (a - b) / denominator
+
+
+def ndvi(red, nir):
+    """Normalized Difference Vegetation Index."""
+    return _safe_index(nir, red)
+
+
+def ndwi(green, nir):
+    """Normalized Difference Water Index."""
+    return _safe_index(green, nir)
+
+
+def ndbi(swir, nir):
+    """Normalized Difference Built-up Index."""
+    return _safe_index(swir, nir)
+
+
+def spectral_analysis(
+    blue,
+    green,
+    red,
+    nir,
+    swir1,
+    swir2,
+):
     """
-    تحليل طيفي أولي لبيانات الاستشعار عن بعد.
-
-    data:
-        مصفوفة NumPy أو بيانات تحتوي على النطاقات الطيفية.
+    حساب مجموعة من المؤشرات الطيفية الأساسية
+    من نطاقات Sentinel-2.
     """
 
-    if data is None:
-        return {
-            "score": None,
-            "status": "no_data"
-        }
-
-    try:
-        import numpy as np
-
-        array = np.asarray(data, dtype=float)
-
-        if array.size == 0:
-            return {
-                "score": None,
-                "status": "empty_data"
-            }
-
-        # حساب متوسط القيم كخطوة أولية.
-        mean_value = float(np.nanmean(array))
-
-        # تحويل القيمة إلى مؤشر بين 0 و100.
-        score = max(
-            0.0,
-            min(
-                100.0,
-                abs(mean_value) * 100
-            )
-        )
-
-        return {
-            "score": round(score, 1),
-            "status": "ok",
-            "mean_value": mean_value
-        }
-
-    except Exception as exc:
-
-        return {
-            "score": None,
-            "status": "error",
-            "error": str(exc)
-        }
+    return {
+        "ndvi": ndvi(red, nir),
+        "ndwi": ndwi(green, nir),
+        "ndbi": ndbi(swir1, nir),
+        "brightness": (
+            blue + green + red + nir + swir1 + swir2
+        ) / 6.0,
+    }
