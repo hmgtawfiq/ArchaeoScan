@@ -1,5 +1,8 @@
+import io
 import math
+
 import requests
+import rasterio
 
 from config import (
     CDSE_CLIENT_ID,
@@ -62,8 +65,7 @@ def get_sentinel_request(
     max_cloud=20,
 ):
     """
-    تجهيز طلب Sentinel-2 L2A مع النطاقات
-    اللازمة للتحليل الطيفي الأولي.
+    تجهيز طلب Sentinel-2 L2A.
     """
 
     bbox = create_bbox(
@@ -189,3 +191,18 @@ def request_sentinel_data(
     response.raise_for_status()
 
     return response
+
+
+def read_sentinel_tiff(response):
+    """
+    قراءة TIFF الذي أعاده Sentinel-2
+    وتحويله إلى مصفوفات رقمية.
+    """
+
+    with rasterio.open(
+        io.BytesIO(response.content)
+    ) as dataset:
+
+        data = dataset.read()
+
+    return data
