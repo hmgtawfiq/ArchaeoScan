@@ -34,7 +34,14 @@ jobs:
           python -c "from analysis.spectral import spectral_analysis; from analysis.temporal import temporal_analysis; from analysis.geometry import geometry_analysis; from analysis.scoring import calculate_final_score; print('ArchaeoScan engine OK')"
 
       - name: Test Copernicus authentication
-            - name: Test Sentinel-2 data request
+        working-directory: backend
+        env:
+          CDSE_CLIENT_ID: ${{ secrets.CDSE_CLIENT_ID }}
+          CDSE_CLIENT_SECRET: ${{ secrets.CDSE_CLIENT_SECRET }}
+        run: |
+          python -c "from satellite.copernicus import get_access_token; token=get_access_token(); print('Copernicus authentication OK')"
+
+      - name: Test Sentinel-2 data request
         working-directory: backend
         env:
           CDSE_CLIENT_ID: ${{ secrets.CDSE_CLIENT_ID }}
@@ -56,9 +63,3 @@ jobs:
           print("HTTP status:", response.status_code)
           print("Data size:", len(response.content), "bytes")
           PY
-        working-directory: backend
-        env:
-          CDSE_CLIENT_ID: ${{ secrets.CDSE_CLIENT_ID }}
-          CDSE_CLIENT_SECRET: ${{ secrets.CDSE_CLIENT_SECRET }}
-        run: |
-          python -c "from satellite.copernicus import get_access_token; token=get_access_token(); print('Copernicus authentication OK')"
