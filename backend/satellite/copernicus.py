@@ -62,7 +62,8 @@ def get_sentinel_request(
     max_cloud=20,
 ):
     """
-    تجهيز طلب بيانات Sentinel-2 L2A.
+    تجهيز طلب Sentinel-2 L2A مع النطاقات
+    اللازمة للتحليل الطيفي الأولي.
     """
 
     bbox = create_bbox(
@@ -70,6 +71,42 @@ def get_sentinel_request(
         longitude,
         radius_m,
     )
+
+    evalscript = """
+//VERSION=3
+
+function setup() {
+    return {
+        input: [
+            "B02",
+            "B03",
+            "B04",
+            "B08",
+            "B11",
+            "B12",
+            "SCL",
+            "dataMask"
+        ],
+        output: {
+            bands: 8,
+            sampleType: "FLOAT32"
+        }
+    };
+}
+
+function evaluatePixel(sample) {
+    return [
+        sample.B02,
+        sample.B03,
+        sample.B04,
+        sample.B08,
+        sample.B11,
+        sample.B12,
+        sample.SCL,
+        sample.dataMask
+    ];
+}
+"""
 
     return {
         "input": {
@@ -93,13 +130,26 @@ def get_sentinel_request(
                             "to": (
                                 f"{end_date}T23:59:59Z"
                             ),
+                            "maxCloudCoverage": max_cloud,
                         },
-                        "maxCloudCoverage": max_cloud,
                         "mosaickingOrder": "leastCC",
                     },
                 }
             ],
-        }
+        },
+        "output": {
+            "width": 256,
+            "height": 256,
+            "responses": [
+                {
+                    "identifier": "default",
+                    "format": {
+                        "type": "image/tiff"
+                    },
+                }
+            ],
+        },
+        "evalscript": evalscript,
     }
 
 
@@ -112,7 +162,7 @@ def request_sentinel_data(
     max_cloud=20,
 ):
     """
-    إرسال طلب إلى Copernicus Process API.
+    إرسال طلب حقيقي إلى Copernicus Process API.
     """
 
     token = get_access_token()
