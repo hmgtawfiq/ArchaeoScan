@@ -1,57 +1,60 @@
-def geometry_analysis(data):
+import math
+
+
+def distance(x1, y1, x2, y2):
+    """حساب المسافة بين نقطتين."""
+    return math.sqrt(
+        (x2 - x1) ** 2 +
+        (y2 - y1) ** 2
+    )
+
+
+def normalize(value, minimum, maximum):
+    """تحويل قيمة إلى نطاق من 0 إلى 1."""
+    if maximum <= minimum:
+        return 0.0
+
+    result = (value - minimum) / (maximum - minimum)
+
+    return max(0.0, min(1.0, result))
+
+
+def geometry_analysis(
+    width,
+    height,
+    anomaly_pixels,
+    total_pixels,
+):
     """
-    تحليل هندسي أولي لبيانات منطقة البحث.
+    تحليل أولي لشكل وتوزيع البكسلات المرشحة.
     """
 
-    if data is None:
-        return {
-            "score": None,
-            "status": "no_data"
-        }
-
-    try:
-        import numpy as np
-
-        array = np.asarray(data, dtype=float)
-
-        if array.size == 0:
-            return {
-                "score": None,
-                "status": "empty_data"
-            }
-
-        # حساب التغيرات المحلية في البيانات.
-        gradients = np.gradient(array)
-
-        if isinstance(gradients, list):
-            magnitude = np.sqrt(
-                sum(g ** 2 for g in gradients)
-            )
-        else:
-            magnitude = np.abs(gradients)
-
-        mean_change = float(
-            np.nanmean(magnitude)
+    if width <= 0 or height <= 0:
+        raise ValueError(
+            "Image dimensions must be greater than zero."
         )
 
-        score = max(
+    if total_pixels <= 0:
+        raise ValueError(
+            "Total pixels must be greater than zero."
+        )
+
+    anomaly_ratio = anomaly_pixels / total_pixels
+
+    image_area = width * height
+
+    density = anomaly_pixels / image_area
+
+    return {
+        "width": width,
+        "height": height,
+        "anomaly_pixels": anomaly_pixels,
+        "total_pixels": total_pixels,
+        "anomaly_ratio": anomaly_ratio,
+        "density": density,
+        "coverage_score": normalize(
+            anomaly_ratio,
             0.0,
-            min(
-                100.0,
-                mean_change * 100
-            )
-        )
-
-        return {
-            "score": round(score, 1),
-            "status": "ok",
-            "mean_change": mean_change
-        }
-
-    except Exception as exc:
-
-        return {
-            "score": None,
-            "status": "error",
-            "error": str(exc)
-        }
+            1.0,
+        ),
+    }
