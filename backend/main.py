@@ -3,8 +3,9 @@ from pydantic import BaseModel
 
 from analysis.scoring import (
     calculate_final_score,
-    classify_score,
+    score_level,
 )
+
 
 app = FastAPI(
     title="ArchaeoScan",
@@ -56,18 +57,19 @@ def analyze(request: AnalysisRequest):
             detail="Radius must be positive",
         )
 
-    # المكونات الحقيقية للتحليل ستضاف
-    # بعد ربط Sentinel-2 وCopernicus.
-
-    components = []
+    # درجات مؤقتة إلى أن يتم ربط التحليل
+    # الفعلي ببيانات Sentinel-2.
+    spectral_score = 0.0
+    temporal_score = 0.0
+    geometry_score = 0.0
 
     final_score = calculate_final_score(
-        components
+        spectral_score,
+        temporal_score,
+        geometry_score,
     )
 
-    classification = classify_score(
-        final_score
-    )
+    classification = score_level(final_score)
 
     return {
         "latitude": request.latitude,
