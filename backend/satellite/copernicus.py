@@ -126,7 +126,7 @@ def request_sentinel_data(
         max_cloud,
     )
 
-        response = requests.post(
+    response = requests.post(
         CDSE_PROCESS_URL,
         headers={
             "Authorization": f"Bearer {token}",
