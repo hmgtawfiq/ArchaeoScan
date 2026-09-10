@@ -1,52 +1,43 @@
-def calculate_final_score(components):
+def clamp(value, minimum=0.0, maximum=100.0):
+    """حصر القيمة ضمن نطاق محدد."""
+    return max(minimum, min(maximum, value))
+
+
+def calculate_final_score(
+    spectral_score,
+    temporal_score,
+    geometry_score,
+):
     """
-    حساب النتيجة النهائية من مكونات التحليل المتوفرة.
+    حساب الدرجة النهائية من نتائج التحليلات.
+
+    الأوزان:
+    40% طيفي
+    30% زمني
+    30% هندسي
     """
 
-    available = [
-        component
-        for component in components
-        if component.get("score") is not None
-    ]
-
-    if not available:
-        return 0.0
-
-    total_weight = sum(
-        component.get("weight", 0)
-        for component in available
+    score = (
+        spectral_score * 0.40
+        + temporal_score * 0.30
+        + geometry_score * 0.30
     )
 
-    if total_weight <= 0:
-        return 0.0
-
-    weighted_score = sum(
-        component["score"]
-        * component.get("weight", 0)
-        for component in available
-    )
-
-    return round(
-        weighted_score / total_weight,
-        1
-    )
+    return round(clamp(score), 2)
 
 
-def classify_score(score):
-    """
-    تحويل الدرجة الرقمية إلى تصنيف مبسط.
-    """
+def score_level(score):
+    """تحويل الدرجة إلى مستوى مبسط."""
 
-    if score < 25:
-        return "منخفض جداً"
+    score = clamp(score)
 
-    if score < 50:
+    if score < 30:
         return "منخفض"
 
-    if score < 70:
+    if score < 60:
         return "متوسط"
 
-    if score < 85:
+    if score < 80:
         return "مرتفع"
 
-    return "مرتفع جداً"
+    return "مرتفع جدًا"
