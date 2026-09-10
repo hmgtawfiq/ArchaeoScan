@@ -1,11 +1,19 @@
+import numpy as np
+
+
 def _safe_index(a, b):
     """حساب (A-B)/(A+B) مع تجنب القسمة على صفر."""
+
     denominator = a + b
 
-    if denominator == 0:
-        return 0.0
-
-    return (a - b) / denominator
+    return np.divide(
+        a - b,
+        denominator,
+        out=np.zeros_like(
+            np.asarray(a, dtype=float)
+        ),
+        where=denominator != 0,
+    )
 
 
 def ndvi(red, nir):
@@ -33,16 +41,58 @@ def spectral_analysis(
 ):
     """
     حساب المؤشرات الطيفية الأساسية
-    من نطاقات Sentinel-2.
+    من بيانات Sentinel-2.
+
+    يمكن أن تكون المدخلات قيماً مفردة
+    أو مصفوفات NumPy.
     """
 
-    values = {
+    blue = np.asarray(blue, dtype=float)
+    green = np.asarray(green, dtype=float)
+    red = np.asarray(red, dtype=float)
+    nir = np.asarray(nir, dtype=float)
+    swir1 = np.asarray(swir1, dtype=float)
+    swir2 = np.asarray(swir2, dtype=float)
+
+    return {
         "ndvi": ndvi(red, nir),
         "ndwi": ndwi(green, nir),
         "ndbi": ndbi(swir1, nir),
         "brightness": (
-            blue + green + red + nir + swir1 + swir2
+            blue
+            + green
+            + red
+            + nir
+            + swir1
+            + swir2
         ) / 6.0,
     }
 
-    return values
+
+def summarize_spectral_results(results):
+    """
+    تلخيص نتائج المصفوفات إلى قيم مفهومة.
+    """
+
+    summary = {}
+
+    for name, values in results.items():
+        array = np.asarray(values, dtype=float)
+
+        valid = array[np.isfinite(array)]
+
+        if valid.size == 0:
+            summary[name] = {
+                "mean": 0.0,
+                "minimum": 0.0,
+                "maximum": 0.0,
+            }
+            continue
+
+        summary[name] = {
+            "mean": float(np.mean(valid)),
+            "minimum": float(np.min(valid)),
+            "maximum": float(np.max(valid)),
+        }
+
+    return summary
