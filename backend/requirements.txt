@@ -4,3 +4,4 @@ pydantic
 python-dotenv
 requests
 numpy
+rasterio
