@@ -1,6 +1,10 @@
-def clamp(value, minimum=0.0, maximum=100.0):
-    """حصر القيمة ضمن نطاق محدد."""
-    return max(minimum, min(maximum, value))
+def clamp_score(value):
+    """حصر الدرجة بين 0 و100."""
+
+    return max(
+        0.0,
+        min(100.0, float(value)),
+    )
 
 
 def calculate_final_score(
@@ -9,29 +13,47 @@ def calculate_final_score(
     geometry_score,
 ):
     """
-    حساب الدرجة النهائية من نتائج التحليلات.
+    حساب الدرجة النهائية من مكونات التحليل.
 
     الأوزان:
-    40% طيفي
-    30% زمني
-    30% هندسي
+    الطيفي 40%
+    الزمني 30%
+    المكاني 30%
     """
 
-    score = (
+    spectral_score = clamp_score(
+        spectral_score
+    )
+
+    temporal_score = clamp_score(
+        temporal_score
+    )
+
+    geometry_score = clamp_score(
+        geometry_score
+    )
+
+    final_score = (
         spectral_score * 0.40
         + temporal_score * 0.30
         + geometry_score * 0.30
     )
 
-    return round(clamp(score), 2)
+    return round(
+        clamp_score(final_score),
+        2,
+    )
 
 
 def score_level(score):
-    """تحويل الدرجة إلى مستوى مبسط."""
+    """تحويل الدرجة إلى مستوى مفهوم."""
 
-    score = clamp(score)
+    score = clamp_score(score)
 
-    if score < 30:
+    if score < 20:
+        return "منخفض جدًا"
+
+    if score < 40:
         return "منخفض"
 
     if score < 60:
@@ -41,3 +63,32 @@ def score_level(score):
         return "مرتفع"
 
     return "مرتفع جدًا"
+
+
+def classify_score(score):
+    """
+    اسم بديل للتصنيف للحفاظ على التوافق
+    مع الإصدارات السابقة.
+    """
+
+    return score_level(score)
+
+
+def score_description(score):
+    """وصف مختصر للنتيجة."""
+
+    score = clamp_score(score)
+
+    if score < 20:
+        return "مؤشرات ضعيفة جدًا ولا تستدعي أولوية للاستكشاف."
+
+    if score < 40:
+        return "مؤشرات ضعيفة، مع وجود بعض الاختلافات التي تستحق المراجعة."
+
+    if score < 60:
+        return "مؤشرات متوسطة وتحتاج إلى فحص إضافي ومقارنة مع مصادر أخرى."
+
+    if score < 80:
+        return "مؤشرات مرتفعة نسبيًا وتستحق أولوية أكبر للفحص الميداني أو التحليل المتقدم."
+
+    return "مؤشرات مرتفعة جدًا وتستحق دراسة متقدمة، ولا تعني بحد ذاتها وجود موقع أثري مؤكد."
