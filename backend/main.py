@@ -84,13 +84,13 @@ def analyze(request: AnalysisRequest):
         max_cloud=20,
     )
 
-    if current_data.shape[0] < 6:
+    if current_data.shape[0] < 8:
         raise HTTPException(
             status_code=500,
             detail="Insufficient current Sentinel-2 bands.",
         )
 
-    if previous_data.shape[0] < 6:
+    if previous_data.shape[0] < 8:
         raise HTTPException(
             status_code=500,
             detail="Insufficient previous Sentinel-2 bands.",
@@ -103,6 +103,8 @@ def analyze(request: AnalysisRequest):
         current_data[3],
         current_data[4],
         current_data[5],
+        current_data[6],
+        current_data[7],
     )
 
     previous_spectral = spectral_analysis(
@@ -112,6 +114,8 @@ def analyze(request: AnalysisRequest):
         previous_data[3],
         previous_data[4],
         previous_data[5],
+        previous_data[6],
+        previous_data[7],
     )
 
     current_summary = summarize_spectral_results(
