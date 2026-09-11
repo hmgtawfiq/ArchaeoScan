@@ -10,13 +10,15 @@ from analysis.spectral import (
 from analysis.geometry import (
     spatial_anomaly_score,
 )
+from analysis.temporal import (
+    temporal_anomaly_score,
+)
 from analysis.scoring import (
     calculate_final_score,
     score_level,
 )
 from satellite.copernicus import (
-    request_sentinel_data,
-    read_sentinel_tiff,
+    request_two_periods,
 )
 
 
@@ -70,62 +72,79 @@ def analyze(request: AnalysisRequest):
             detail="Radius must be positive",
         )
 
-    response = request_sentinel_data(
+    current_data, previous_data = request_two_periods(
         latitude=request.latitude,
         longitude=request.longitude,
         radius_m=request.radius_m,
-        start_date="2026-08-01",
-        end_date="2026-09-01",
+        current_start="2026-08-01",
+        current_end="2026-09-01",
+        previous_start="2026-07-01",
+        previous_end="2026-07-31",
         max_cloud=20,
     )
 
-    data = read_sentinel_tiff(response)
-
-    if data.shape[0] < 6:
+    if current_data.shape[0] < 6:
         raise HTTPException(
             status_code=500,
-            detail="Insufficient Sentinel-2 bands.",
+            detail="Insufficient current Sentinel-2 bands.",
         )
 
-    blue = data[0]
-    green = data[1]
-    red = data[2]
-    nir = data[3]
-    swir1 = data[4]
-    swir2 = data[5]
+    if previous_data.shape[0] < 6:
+        raise HTTPException(
+            status_code=500,
+            detail="Insufficient previous Sentinel-2 bands.",
+        )
 
-    spectral_results = spectral_analysis(
-        blue,
-        green,
-        red,
-        nir,
-        swir1,
-        swir2,
+    current_spectral = spectral_analysis(
+        current_data[0],
+        current_data[1],
+        current_data[2],
+        current_data[3],
+        current_data[4],
+        current_data[5],
     )
 
-    spectral_summary = summarize_spectral_results(
-        spectral_results
+    previous_spectral = spectral_analysis(
+        previous_data[0],
+        previous_data[1],
+        previous_data[2],
+        previous_data[3],
+        previous_data[4],
+        previous_data[5],
+    )
+
+    current_summary = summarize_spectral_results(
+        current_spectral
+    )
+
+    previous_summary = summarize_spectral_results(
+        previous_spectral
     )
 
     spatial_result = spatial_anomaly_score(
-        spectral_results["ndbi"]
+        current_spectral["ndbi"]
+    )
+
+    temporal_result = temporal_anomaly_score(
+        current_spectral["ndbi"],
+        previous_spectral["ndbi"],
     )
 
     spectral_score = float(
         np.clip(
             (
                 abs(
-                    spectral_summary["ndbi"]["mean"]
+                    current_summary["ndbi"]["mean"]
                 ) * 100
             )
             + (
                 abs(
-                    spectral_summary["ndwi"]["mean"]
+                    current_summary["ndwi"]["mean"]
                 ) * 20
             )
             + (
                 abs(
-                    spectral_summary["ndvi"]["mean"]
+                    current_summary["ndvi"]["mean"]
                 ) * 10
             ),
             0,
@@ -133,7 +152,7 @@ def analyze(request: AnalysisRequest):
         )
     )
 
-    temporal_score = 0.0
+    temporal_score = temporal_result["score"]
 
     geometry_score = spatial_result["score"]
 
@@ -151,14 +170,19 @@ def analyze(request: AnalysisRequest):
         "latitude": request.latitude,
         "longitude": request.longitude,
         "radius_m": request.radius_m,
-        "spectral": spectral_summary,
+        "current": current_summary,
+        "previous": previous_summary,
         "spatial": spatial_result,
+        "temporal": temporal_result,
         "scores": {
             "spectral": round(
                 spectral_score,
                 2,
             ),
-            "temporal": temporal_score,
+            "temporal": round(
+                temporal_score,
+                2,
+            ),
             "geometry": round(
                 geometry_score,
                 2,
