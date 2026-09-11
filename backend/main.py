@@ -16,6 +16,7 @@ from analysis.temporal import (
 from analysis.scoring import (
     calculate_final_score,
     score_level,
+    score_description,
 )
 from satellite.copernicus import (
     request_two_periods,
@@ -166,6 +167,10 @@ def analyze(request: AnalysisRequest):
         final_score
     )
 
+    description = score_description(
+        final_score
+    )
+
     return {
         "latitude": request.latitude,
         "longitude": request.longitude,
@@ -190,5 +195,6 @@ def analyze(request: AnalysisRequest):
             "final": final_score,
         },
         "classification": classification,
+        "description": description,
         "status": "analysis_complete",
     }
