@@ -63,3 +63,82 @@ jobs:
           print("HTTP status:", response.status_code)
           print("Data size:", len(response.content), "bytes")
           PY
+
+      - name: Start ArchaeoScan API
+        working-directory: backend
+        env:
+          CDSE_CLIENT_ID: ${{ secrets.CDSE_CLIENT_ID }}
+          CDSE_CLIENT_SECRET: ${{ secrets.CDSE_CLIENT_SECRET }}
+        run: |
+          uvicorn main:app --host 127.0.0.1 --port 8000 > api.log 2>&1 &
+          echo $! > api.pid
+
+          for i in {1..30}; do
+            if curl -s http://127.0.0.1:8000/health | grep -q '"status":"ok"'; then
+              echo "ArchaeoScan API is ready"
+              exit 0
+            fi
+
+            sleep 1
+          done
+
+          echo "ArchaeoScan API failed to start"
+          cat api.log
+          exit 1
+
+      - name: Test ArchaeoScan API
+        working-directory: backend
+        env:
+          CDSE_CLIENT_ID: ${{ secrets.CDSE_CLIENT_ID }}
+          CDSE_CLIENT_SECRET: ${{ secrets.CDSE_CLIENT_SECRET }}
+        run: |
+          python - <<'PY'
+          import requests
+
+          response = requests.post(
+              "http://127.0.0.1:8000/api/analyze",
+              json={
+                  "latitude": 33.7204130,
+                  "longitude": 36.5563628,
+                  "radius_m": 500,
+              },
+              timeout=180,
+          )
+
+          print("API HTTP status:", response.status_code)
+          print("API response:")
+          print(response.text)
+
+          response.raise_for_status()
+
+          result = response.json()
+
+          required_keys = [
+              "spectral",
+              "spatial",
+              "temporal",
+              "scores",
+              "classification",
+          ]
+
+          for key in required_keys:
+              if key not in result:
+                  raise RuntimeError(
+                      f"Missing result field: {key}"
+                  )
+
+          print("ArchaeoScan API analysis OK")
+          PY
+
+      - name: Stop ArchaeoScan API
+        if: always()
+        working-directory: backend
+        run: |
+          if [ -f api.pid ]; then
+            kill "$(cat api.pid)" || true
+          fi
+
+          if [ -f api.log ]; then
+            echo "API log:"
+            cat api.log
+          fi
