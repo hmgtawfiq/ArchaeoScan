@@ -7,6 +7,9 @@ from analysis.spectral import (
     spectral_analysis,
     summarize_spectral_results,
 )
+from analysis.geometry import (
+    spatial_anomaly_score,
+)
 from analysis.scoring import (
     calculate_final_score,
     score_level,
@@ -104,22 +107,35 @@ def analyze(request: AnalysisRequest):
         spectral_results
     )
 
-    ndvi_mean = spectral_summary["ndvi"]["mean"]
-    ndwi_mean = spectral_summary["ndwi"]["mean"]
-    ndbi_mean = spectral_summary["ndbi"]["mean"]
+    spatial_result = spatial_anomaly_score(
+        spectral_results["ndbi"]
+    )
 
     spectral_score = float(
         np.clip(
-            (abs(ndbi_mean) * 100)
-            + (abs(ndwi_mean) * 20)
-            + (abs(ndvi_mean) * 10),
+            (
+                abs(
+                    spectral_summary["ndbi"]["mean"]
+                ) * 100
+            )
+            + (
+                abs(
+                    spectral_summary["ndwi"]["mean"]
+                ) * 20
+            )
+            + (
+                abs(
+                    spectral_summary["ndvi"]["mean"]
+                ) * 10
+            ),
             0,
             100,
         )
     )
 
     temporal_score = 0.0
-    geometry_score = 0.0
+
+    geometry_score = spatial_result["score"]
 
     final_score = calculate_final_score(
         spectral_score,
@@ -136,10 +152,17 @@ def analyze(request: AnalysisRequest):
         "longitude": request.longitude,
         "radius_m": request.radius_m,
         "spectral": spectral_summary,
+        "spatial": spatial_result,
         "scores": {
-            "spectral": round(spectral_score, 2),
+            "spectral": round(
+                spectral_score,
+                2,
+            ),
             "temporal": temporal_score,
-            "geometry": geometry_score,
+            "geometry": round(
+                geometry_score,
+                2,
+            ),
             "final": final_score,
         },
         "classification": classification,
