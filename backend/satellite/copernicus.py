@@ -181,28 +181,4 @@ def request_sentinel_data(
     response = requests.post(
         CDSE_PROCESS_URL,
         headers={
-            "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json",
-        },
-        json=request_body,
-        timeout=120,
-    )
-
-    response.raise_for_status()
-
-    return response
-
-
-def read_sentinel_tiff(response):
-    """
-    قراءة TIFF الذي أعاده Sentinel-2
-    وتحويله إلى مصفوفات رقمية.
-    """
-
-    with rasterio.open(
-        io.BytesIO(response.content)
-    ) as dataset:
-
-        data = dataset.read()
-
-    return data
+            "
