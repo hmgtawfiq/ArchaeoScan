@@ -114,13 +114,13 @@ jobs:
           result = response.json()
 
           required_keys = [
-              "spectral",
-              "spatial",
-              "temporal",
-              "scores",
-              "classification",
-          ]
-
+    "current",
+    "previous",
+    "spatial",
+    "temporal",
+    "scores",
+    "classification",
+]
           for key in required_keys:
               if key not in result:
                   raise RuntimeError(
