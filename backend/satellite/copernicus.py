@@ -64,9 +64,7 @@ def get_sentinel_request(
     end_date,
     max_cloud=20,
 ):
-    """
-    تجهيز طلب Sentinel-2 L2A.
-    """
+    """تجهيز طلب Sentinel-2 L2A."""
 
     bbox = create_bbox(
         latitude,
@@ -163,9 +161,7 @@ def request_sentinel_data(
     end_date,
     max_cloud=20,
 ):
-    """
-    إرسال طلب حقيقي إلى Copernicus Process API.
-    """
+    """إرسال طلب حقيقي إلى Copernicus Process API."""
 
     token = get_access_token()
 
@@ -181,4 +177,66 @@ def request_sentinel_data(
     response = requests.post(
         CDSE_PROCESS_URL,
         headers={
-            "
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
+        },
+        json=request_body,
+        timeout=120,
+    )
+
+    response.raise_for_status()
+
+    return response
+
+
+def read_sentinel_tiff(response):
+    """قراءة TIFF وتحويله إلى مصفوفات رقمية."""
+
+    with rasterio.open(
+        io.BytesIO(response.content)
+    ) as dataset:
+
+        data = dataset.read()
+
+    return data
+
+
+def request_two_periods(
+    latitude,
+    longitude,
+    radius_m,
+    current_start,
+    current_end,
+    previous_start,
+    previous_end,
+    max_cloud=20,
+):
+    """جلب بيانات Sentinel-2 لفترتين زمنيتين."""
+
+    current_response = request_sentinel_data(
+        latitude=latitude,
+        longitude=longitude,
+        radius_m=radius_m,
+        start_date=current_start,
+        end_date=current_end,
+        max_cloud=max_cloud,
+    )
+
+    previous_response = request_sentinel_data(
+        latitude=latitude,
+        longitude=longitude,
+        radius_m=radius_m,
+        start_date=previous_start,
+        end_date=previous_end,
+        max_cloud=max_cloud,
+    )
+
+    current_data = read_sentinel_tiff(
+        current_response
+    )
+
+    previous_data = read_sentinel_tiff(
+        previous_response
+    )
+
+    return current_data, previous_data
