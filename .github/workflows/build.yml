@@ -1,4 +1,4 @@
-name: ArchaeoScan Build
+name: TQ Archaeology Build
 
 on:
   push:
@@ -7,15 +7,16 @@ on:
   workflow_dispatch:
 
 jobs:
+
   test-backend:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.11"
 
@@ -95,4 +96,49 @@ jobs:
           python - <<'PY'
           import requests
 
-          response = requests
+          response = requests.get(
+              "http://127.0.0.1:8000/health",
+              timeout=30,
+          )
+
+          response.raise_for_status()
+
+          print("ArchaeoScan API test OK")
+          print(response.text)
+          PY
+
+
+  build-android:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK 35
+        run: |
+          sdkmanager "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.10.2"
+
+      - name: Build TQ Archaeology APK
+        run: |
+          gradle -p android assembleDebug --no-daemon
+
+      - name: Upload TQ Archaeology APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: tq-archaeology-debug-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
