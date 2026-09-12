@@ -9,6 +9,13 @@ import androidx.appcompat.app.AppCompatActivity
 
 class MainActivity : AppCompatActivity() {
 
+    private var arabic = false
+
+    private lateinit var title: TextView
+    private lateinit var subtitle: TextView
+    private lateinit var analyzeButton: Button
+    private lateinit var languageButton: Button
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -18,36 +25,41 @@ class MainActivity : AppCompatActivity() {
             setPadding(48, 48, 48, 48)
         }
 
-        val title = TextView(this).apply {
+        title = TextView(this).apply {
             text = "TQ Archaeology"
             textSize = 30f
             gravity = Gravity.CENTER
         }
 
-        val subtitle = TextView(this).apply {
+        subtitle = TextView(this).apply {
             text = "Archaeological Analysis"
             textSize = 18f
             gravity = Gravity.CENTER
             setPadding(0, 16, 0, 48)
         }
 
-        val analyzeButton = Button(this).apply {
+        analyzeButton = Button(this).apply {
             text = "Start Analysis"
             textSize = 16f
+
             setOnClickListener {
-                subtitle.text =
-                    "Enter coordinates to begin archaeological analysis."
+                if (arabic) {
+                    subtitle.text =
+                        "أدخل الإحداثيات لبدء التحليل الأثري."
+                } else {
+                    subtitle.text =
+                        "Enter coordinates to begin archaeological analysis."
+                }
             }
         }
 
-        val languageButton = Button(this).apply {
+        languageButton = Button(this).apply {
             text = "العربية"
             textSize = 15f
+
             setOnClickListener {
-                title.text = "TQ Archaeology"
-                subtitle.text = "التحليل الأثري"
-                analyzeButton.text = "بدء التحليل"
-                languageButton.text = "English"
+                arabic = !arabic
+                updateLanguage()
             }
         }
 
@@ -84,5 +96,19 @@ class MainActivity : AppCompatActivity() {
         )
 
         setContentView(root)
+    }
+
+    private fun updateLanguage() {
+        if (arabic) {
+            title.text = "TQ Archaeology"
+            subtitle.text = "التحليل الأثري"
+            analyzeButton.text = "بدء التحليل"
+            languageButton.text = "English"
+        } else {
+            title.text = "TQ Archaeology"
+            subtitle.text = "Archaeological Analysis"
+            analyzeButton.text = "Start Analysis"
+            languageButton.text = "العربية"
+        }
     }
 }
