@@ -178,17 +178,16 @@ class MainActivity : AppCompatActivity() {
 
         if (lat == null || lon == null) {
 
-            resultText.text = if (arabic) {
-                "⚠️ الإحداثيات غير صحيحة."
-            } else {
-                "⚠️ Invalid coordinates."
-            }
-
-            return
-        }
-
-        if (lat !in -90.0..90.0 ||
+                    if (lat !in -90.0..90.0 ||
             lon !in -180.0..180.0
         ) {
 
-            resultText.text = if (
+            resultText.text =
+                if (arabic) {
+                    "⚠️ خط العرض أو خط الطول خارج النطاق الصحيح."
+                } else {
+                    "⚠️ Latitude or longitude is outside the valid range."
+                }
+
+            return
+        }
