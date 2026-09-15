@@ -2,299 +2,343 @@ package com.tqarchaeology.app
 
 import android.graphics.Color
 import android.os.Bundle
+import android.text.InputType
 import android.view.Gravity
 import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
-import android.widget.ScrollView
 import android.widget.TextView
+import android.widget.Toast
+
 import androidx.appcompat.app.AppCompatActivity
+
 import org.json.JSONObject
+import org.osmdroid.config.Configuration
+import org.osmdroid.tileprovider.tilesource.TileSourceFactory
+import org.osmdroid.util.GeoPoint
+import org.osmdroid.views.MapView
+import org.osmdroid.views.overlay.Marker
+
 import java.net.HttpURLConnection
 import java.net.URL
 
 class MainActivity : AppCompatActivity() {
 
-    private lateinit var latitudeInput: EditText
-    private lateinit var longitudeInput: EditText
+    private lateinit var mapView: MapView
+    private lateinit var latitudeText: TextView
+    private lateinit var longitudeText: TextView
     private lateinit var radiusInput: EditText
-    private lateinit var resultText: TextView
     private lateinit var analyzeButton: Button
-    private lateinit var languageButton: Button
 
-    private var arabic = true
+    private var selectedPoint =
+        GeoPoint(33.7204130, 36.5563628)
+
+    private var selectedMarker: Marker? = null
 
     private val apiUrl =
         "https://tq-archaeology-api.onrender.com/api/analyze"
 
-    override fun onCreate(savedInstanceState: Bundle?) {
+    override fun onCreate(
+        savedInstanceState: Bundle?
+    ) {
         super.onCreate(savedInstanceState)
+
+        Configuration.getInstance()
+            .userAgentValue = packageName
+
         createInterface()
     }
 
     private fun createInterface() {
 
-        val scrollView = ScrollView(this)
-
         val root = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(32, 32, 32, 32)
-            setBackgroundColor(Color.WHITE)
+            orientation =
+                LinearLayout.VERTICAL
+
+            setBackgroundColor(
+                Color.WHITE
+            )
         }
 
         val title = TextView(this).apply {
-            text = "TQ Archaeology"
-            textSize = 30f
-            setTextColor(Color.rgb(30, 30, 30))
-            gravity = Gravity.CENTER
-            setPadding(0, 10, 0, 4)
+
+            text =
+                "TQ Archaeology"
+
+            textSize = 28f
+
+            gravity =
+                Gravity.CENTER
+
+            setTextColor(
+                Color.rgb(30, 30, 30)
+            )
+
+            setPadding(
+                10,
+                20,
+                10,
+                5
+            )
         }
 
         root.addView(title)
 
         val subtitle = TextView(this).apply {
-            text = "التحليل الأثري\nArchaeological Analysis"
-            textSize = 16f
-            gravity = Gravity.CENTER
-            setTextColor(Color.DKGRAY)
-            setPadding(0, 0, 0, 30)
+
+            text =
+                "اختيار موقع الدراسة وتحليل المؤشرات"
+
+            textSize = 15f
+
+            gravity =
+                Gravity.CENTER
+
+            setTextColor(
+                Color.DKGRAY
+            )
+
+            setPadding(
+                10,
+                0,
+                10,
+                15
+            )
         }
 
         root.addView(subtitle)
 
-        languageButton = Button(this).apply {
-            text = "English / العربية"
+        mapView = MapView(this).apply {
 
-            setOnClickListener {
-                arabic = !arabic
-                updateLanguage()
-            }
-        }
-
-        root.addView(languageButton)
-
-        latitudeInput = createInput(
-            "خط العرض Latitude",
-            "33.7204130"
-        )
-
-        longitudeInput = createInput(
-            "خط الطول Longitude",
-            "36.5563628"
-        )
-
-        radiusInput = createInput(
-            "نصف القطر بالمتر Radius (m)",
-            "500"
-        )
-
-        root.addView(latitudeInput)
-        root.addView(longitudeInput)
-        root.addView(radiusInput)
-
-        analyzeButton = Button(this).apply {
-            text = "بدء التحليل / Analyze"
-            textSize = 17f
-
-            setOnClickListener {
-                startAnalysis()
-            }
-        }
-
-        root.addView(analyzeButton)
-
-        resultText = TextView(this).apply {
-            text = "أدخل الإحداثيات واضغط «بدء التحليل»."
-            textSize = 16f
-            setTextColor(Color.DKGRAY)
-            setPadding(10, 30, 10, 30)
-        }
-
-        root.addView(resultText)
-
-        scrollView.addView(root)
-
-        setContentView(scrollView)
-    }
-
-    private fun createInput(
-        label: String,
-        value: String
-    ): EditText {
-
-        return EditText(this).apply {
-
-            hint = label
-            setText(value)
-            textSize = 
-            16f
-
-            setPadding(
-                20,
-                15,
-                20,
-                15
+            setTileSource(
+                TileSourceFactory.MAPNIK
             )
 
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply {
-                setMargins(0, 12, 0, 12)
+            setMultiTouchControls(
+                true
+            )
+
+            controller.setZoom(
+                12.0
+            )
+
+            controller.setCenter(
+                selectedPoint
+            )
+
+            layoutParams =
+                LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    0,
+                    1f
+                )
+        }
+
+        root.addView(mapView)
+
+        val infoLayout =
+            LinearLayout(this).apply {
+
+                orientation =
+                    LinearLayout.VERTICAL
+
+                setPadding(
+                    20,
+                    10,
+                    20,
+                    10
+                )
             }
+
+        latitudeText =
+            TextView(this).apply {
+
+                text =
+                    "خط العرض: ${selectedPoint.latitude}"
+
+                textSize = 15f
+            }
+
+        longitudeText =
+            TextView(this).apply {
+
+                text =
+                    "خط الطول: ${selectedPoint.longitude}"
+
+                textSize = 15f
+            }
+
+        infoLayout.addView(
+            latitudeText
+        )
+
+        infoLayout.addView(
+            longitudeText
+        )
+
+        radiusInput =
+            EditText(this).apply {
+
+                hint =
+                    "نصف قطر الدراسة بالمتر"
+
+                setText("500")
+
+                textSize = 16f
+
+                inputType =
+                    InputType.TYPE_CLASS_NUMBER
+            }
+
+        infoLayout.addView(
+            radiusInput
+        )
+
+        analyzeButton =
+            Button(this).apply {
+
+                text =
+                    "🔬 تحليل الموقع"
+
+                textSize = 17f
+
+                setOnClickListener {
+
+                    startAnalysis()
+                }
+            }
+
+        infoLayout.addView(
+            analyzeButton
+        )
+
+        root.addView(
+            infoLayout
+        )
+
+        setContentView(root)
+
+        addMarker(
+            selectedPoint
+        )
+
+        mapView.setOnTouchListener { _, _ ->
+
+            val center =
+                mapView.mapCenter as GeoPoint
+
+            selectedPoint =
+                GeoPoint(
+                    center.latitude,
+                    center.longitude
+                )
+
+            latitudeText.text =
+                "خط العرض: ${selectedPoint.latitude}"
+
+            longitudeText.text =
+                "خط الطول: ${selectedPoint.longitude}"
+
+            addMarker(
+                selectedPoint
+            )
+
+            false
         }
     }
 
-    private fun updateLanguage() {
+    private fun addMarker(
+        point: GeoPoint
+    ) {
 
-        if (arabic) {
+        selectedMarker?.let {
 
-            languageButton.text =
-                "English / العربية"
-
-            analyzeButton.text =
-                "بدء التحليل / Analyze"
-
-            resultText.text =
-                "أدخل الإحداثيات واضغط «بدء التحليل»."
-
-        } else {
-
-            languageButton.text =
-                "العربية / English"
-
-            analyzeButton.text =
-                "Analyze / بدء التحليل"
-
-            resultText.text =
-                "Enter the coordinates and press Analyze."
+            mapView.overlays.remove(it)
         }
 
-}
-    private fun startAnalysis() {
+        val marker =
+            Marker(mapView)
 
-        val latitude =
-            latitudeInput.text.toString().trim()
+        marker.position =
+            point
 
-        val longitude =
-            longitudeInput.text.toString().trim()
+        marker.title =
+            "موقع الدراسة"
+
+        marker.setAnchor(
+            Marker.ANCHOR_CENTER,
+            Marker.ANCHOR_BOTTOM
+        )
+
+        mapView.overlays.add(
+            marker
+        )
+
+        selectedMarker =
+            marker
+
+        mapView.invalidate()
+    }
+        private fun startAnalysis() {
 
         val radius =
-            radiusInput.text.toString().trim()
+            radiusInput.text
+                .toString()
+                .trim()
+                .toDoubleOrNull()
+                ?: 500.0
 
-        if (latitude.isEmpty() ||
-            longitude.isEmpty()
-        ) {
+        if (radius <= 0.0) {
 
-            if (arabic) {
-                resultText.text =
-                    "⚠️ يرجى إدخال خط العرض وخط الطول."
-            } else {
-                resultText.text =
-                    "⚠️ Please enter latitude and longitude."
-            }
+            radiusInput.error =
+                "يجب أن يكون نصف القطر أكبر من صفر"
 
             return
         }
 
-        val latValue =
-            latitude.toDoubleOrNull()
+        analyzeButton.isEnabled =
+            false
 
-        val lonValue =
-            longitude.toDoubleOrNull()
+        analyzeButton.text =
+            "⏳ جارٍ التحليل..."
 
-        val radiusValue =
-            radius.toDoubleOrNull()
+        val latitude =
+            selectedPoint.latitude
 
-        if (latValue == null ||
-            lonValue == null
-        ) {
-
-            if (arabic) {
-                resultText.text =
-                    "⚠️ الإحداثيات غير صحيحة."
-            } else {
-                resultText.text =
-                    "⚠️ Invalid coordinates."
-            }
-
-            return
-        }
-
-        val lat = latValue
-        val lon = lonValue
-        val rad = radiusValue ?: 500.0
-
-        if (lat < -90.0 ||
-            lat > 90.0 ||
-            lon < -180.0 ||
-            lon > 180.0
-        ) {
-
-            if (arabic) {
-                resultText.text =
-                    "⚠️ خط العرض أو خط الطول خارج النطاق الصحيح."
-            } else {
-                resultText.text =
-                    "⚠️ Latitude or longitude is outside the valid range."
-            }
-
-            return
-        }
-
-        if (rad <= 0.0) {
-
-            if (arabic) {
-                resultText.text =
-                    "⚠️ نصف القطر يجب أن يكون أكبر من صفر."
-            } else {
-                resultText.text =
-                    "⚠️ Radius must be greater than zero."
-            }
-
-            return
-        
-         }
-             analyzeButton.isEnabled = false
-
-        if (arabic) {
-            resultText.text =
-                "⏳ جارٍ الاتصال بخادم التحليل...\n\n" +
-                        "قد يستغرق تحليل صور الأقمار الصناعية بعض الوقت."
-        } else {
-            resultText.text =
-                "⏳ Connecting to the analysis server...\n\n" +
-                        "Satellite analysis may take some time."
-        }
+        val longitude =
+            selectedPoint.longitude
 
         Thread {
 
-            var connection: HttpURLConnection? = null
+            var connection:
+                    HttpURLConnection? = null
 
             try {
 
-                val jsonRequest = JSONObject()
+                val jsonRequest =
+                    JSONObject()
 
                 jsonRequest.put(
                     "latitude",
-                    lat
+                    latitude
                 )
 
                 jsonRequest.put(
                     "longitude",
-                    lon
+                    longitude
                 )
 
                 jsonRequest.put(
                     "radius_m",
-                    rad
+                    radius
                 )
 
                 val url =
                     URL(apiUrl)
 
                 connection =
-                    url.openConnection() as HttpURLConnection
+                    url.openConnection()
+                            as HttpURLConnection
 
                 connection.requestMethod =
                     "POST"
@@ -323,7 +367,9 @@ class MainActivity : AppCompatActivity() {
                     output.write(
                         jsonRequest
                             .toString()
-                            .toByteArray(Charsets.UTF_8)
+                            .toByteArray(
+                                Charsets.UTF_8
+                            )
                     )
                 }
 
@@ -332,7 +378,9 @@ class MainActivity : AppCompatActivity() {
 
                 val responseText: String
 
-                if (responseCode in 200..299) {
+                if (
+                    responseCode in 200..299
+                ) {
 
                     responseText =
                         connection.inputStream
@@ -349,33 +397,32 @@ class MainActivity : AppCompatActivity() {
                             ?.use {
                                 it.readText()
                             }
-                            ?: "Unknown server error"
-                } 
-                                runOnUiThread {
+                            ?: "خطأ غير معروف من الخادم"
+                }
 
-                    analyzeButton.isEnabled = true
+                runOnUiThread {
 
-                    if (responseCode in 200..299) {
+                    analyzeButton.isEnabled =
+                        true
 
-                        resultText.text =
-                            formatAnalysisResult(responseText)
+                    analyzeButton.text =
+                        "🔬 تحليل الموقع"
+
+                    if (
+                        responseCode in 200..299
+                    ) {
+
+                        showAnalysisResult(
+                            responseText
+                        )
 
                     } else {
 
-                        if (arabic) {
-
-                            resultText.text =
-                                "❌ فشل التحليل.\n\n" +
-                                        "رمز الخادم: $responseCode\n\n" +
-                                        responseText
-
-                        } else {
-
-                            resultText.text =
-                                "❌ Analysis failed.\n\n" +
-                                        "Server code: $responseCode\n\n" +
-                                        responseText
-                        }
+                        Toast.makeText(
+                            this,
+                            "فشل التحليل: HTTP $responseCode",
+                            Toast.LENGTH_LONG
+                        ).show()
                     }
                 }
 
@@ -383,22 +430,17 @@ class MainActivity : AppCompatActivity() {
 
                 runOnUiThread {
 
-                    analyzeButton.isEnabled = true
+                    analyzeButton.isEnabled =
+                        true
 
-                    if (arabic) {
+                    analyzeButton.text =
+                        "🔬 تحليل الموقع"
 
-                        resultText.text =
-                            "❌ تعذر الاتصال بخادم التحليل.\n\n" +
-                                    "الخطأ:\n" +
-                                    (e.message ?: "خطأ غير معروف")
-
-                    } else {
-
-                        resultText.text =
-                            "❌ Unable to connect to the analysis server.\n\n" +
-                                    "Error:\n" +
-                                    (e.message ?: "Unknown error")
-                    }
+                    Toast.makeText(
+                        this,
+                        "تعذر الاتصال بالخادم:\n${e.message}",
+                        Toast.LENGTH_LONG
+                    ).show()
                 }
 
             } finally {
@@ -408,188 +450,137 @@ class MainActivity : AppCompatActivity() {
 
         }.start()
     }
-
-    private fun formatAnalysisResult(
+           private fun showAnalysisResult(
         responseText: String
-    ): String {
+    ) {
 
-        return try {
+        try {
 
-            val json = JSONObject(responseText)
-            val builder = StringBuilder()
+            val json =
+                JSONObject(responseText)
 
-            builder.append(
-                if (arabic) {
-                    "✅ اكتمل التحليل\n\n"
-                } else {
-                    "✅ Analysis completed\n\n"
-                }
-            )
+            val scores =
+                json.optJSONObject("scores")
 
-            appendValue(
-                builder,
-                json,
-                "latitude",
-                if (arabic) "خط العرض" else "Latitude"
-            )
-
-            appendValue(
-                builder,
-                json,
-                "longitude",
-                if (arabic) "خط الطول" else "Longitude"
-            )
-
-            appendValue(
-                builder,
-                json,
-                "radius_m",
-                if (arabic) "نصف القطر" else "Radius"
-            )
-
-            if (json.has("scores")) {
-
-                val scores =
-                    json.getJSONObject("scores")
-
-                builder.append(
-                    if (arabic) {
-                        "📊 النتائج\n\n"
-                    } else {
-                        "📊 Results\n\n"
-                    }
-                )
-
-                appendValue(
-                    builder,
-                    scores,
+            val finalScore =
+                scores?.optDouble(
                     "final",
-                    if (arabic) "النتيجة النهائية" else "Final score"
-                )
+                    0.0
+                ) ?: 0.0
 
-                appendValue(
-                    builder,
-                    scores,
+            val spectralScore =
+                scores?.optDouble(
                     "spectral",
-                    if (arabic) "النتيجة الطيفية" else "Spectral score"
-                )
+                    0.0
+                ) ?: 0.0
 
-                appendValue(
-                    builder,
-                    scores,
+            val temporalScore =
+                scores?.optDouble(
                     "temporal",
-                    if (arabic) "النتيجة الزمنية" else "Temporal score"
-                )
+                    0.0
+                ) ?: 0.0
 
-                appendValue(
-                    builder,
-                    scores,
+            val geometryScore =
+                scores?.optDouble(
                     "geometry",
-                    if (arabic) "النتيجة المكانية" else "Spatial score"
-                )
-            }
+                    0.0
+                ) ?: 0.0
 
-            appendValue(
-                builder,
-                json,
-                "classification",
-                if (arabic) "التصنيف" else "Classification"
+            val classification =
+                json.optString(
+                    "classification",
+                    "غير محدد"
+                )
+
+            val description =
+                json.optString(
+                    "description",
+                    ""
+                )
+
+            val result =
+                """
+                
+                ✅ اكتمل تحليل الموقع
+                
+                📍 موقع الدراسة
+                
+                خط العرض:
+                ${selectedPoint.latitude}
+                
+                خط الطول:
+                ${selectedPoint.longitude}
+                
+                📊 نتائج التحليل
+                
+                النتيجة النهائية:
+                ${"%.2f".format(finalScore)}
+                
+                النتيجة الطيفية:
+                ${"%.2f".format(spectralScore)}
+                
+                النتيجة الزمنية:
+                ${"%.2f".format(temporalScore)}
+                
+                النتيجة المكانية:
+                ${"%.2f".format(geometryScore)}
+                
+                🎯 التصنيف:
+                $classification
+                
+                📝 التفسير:
+                $description
+                
+                ⚠️ ملاحظة مهمة:
+                
+                هذه النتائج تمثل مؤشرات
+                وشذوذات تستحق الدراسة،
+                ولا تعني إثبات وجود أثر
+                أو دفين.
+                
+                """.trimIndent()
+
+            android.app.AlertDialog.Builder(
+                this
             )
-
-            appendValue(
-                builder,
-                json,
-                "description",
-                if (arabic) "الوصف" else "Description"
-            )
-
-            if (json.has("spatial")) {
-
-                val spatial =
-                    json.getJSONObject("spatial")
-
-                builder.append(
-                    if (arabic) {
-                        "📍 التحليل المكاني\n\n"
-                    } else {
-                        "📍 Spatial analysis\n\n"
-                    }
+                .setTitle(
+                    "TQ Archaeology"
                 )
-
-                appendValue(
-                    builder,
-                    spatial,
-                    "score",
-                    if (arabic) "النتيجة" else "Score"
+                .setMessage(
+                    result
                 )
-
-                appendValue(
-                    builder,
-                    spatial,
-                    "anomaly_ratio",
-                    if (arabic) "نسبة الشذوذ" else "Anomaly ratio"
+                .setPositiveButton(
+                    "موافق",
+                    null
                 )
-            }
-
-            if (json.has("temporal")) {
-
-                val temporal =
-                    json.getJSONObject("temporal")
-
-                builder.append(
-                    if (arabic) {
-                        "🕒 التحليل الزمني\n\n"
-                    } else {
-                        "🕒 Temporal analysis\n\n"
-                    }
-                )
-
-                appendValue(
-                    builder,
-                    temporal,
-                    "score",
-                    if (arabic) "النتيجة" else "Score"
-                )
-
-                appendValue(
-                    builder,
-                    temporal,
-                    "mean_change",
-                    if (arabic) "متوسط التغير" else "Mean change"
-                )
-
-                appendValue(
-                    builder,
-                    temporal,
-                    "change_ratio",
-                    if (arabic) "نسبة التغير" else "Change ratio"
-                )
-            }
-
-            builder.toString().trim()
+                .show()
 
         } catch (e: Exception) {
 
-            responseText
+            android.app.AlertDialog.Builder(
+                this
+            )
+                .setTitle(
+                    "نتيجة التحليل"
+                )
+                .setMessage(
+                    responseText
+                )
+                .setPositiveButton(
+                    "موافق",
+                    null
+                )
+                .show()
         }
+    } 
+              override fun onResume() {
+        super.onResume()
+        mapView.onResume()
     }
 
-    private fun appendValue(
-        builder: StringBuilder,
-        json: JSONObject,
-        key: String,
-        label: String
-    ) {
-
-        if (!json.has(key) ||
-            json.isNull(key)
-        ) {
-            return
-        }
-
-        builder.append(label)
-            .append(": ")
-            .append(json.get(key).toString())
-            .append("\n\n")
+    override fun onPause() {
+        super.onPause()
+        mapView.onPause()
     }
-}
+} 
+    
