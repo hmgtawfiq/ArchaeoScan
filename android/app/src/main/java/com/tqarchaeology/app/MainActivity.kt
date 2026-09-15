@@ -21,6 +21,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var radiusInput: EditText
     private lateinit var resultText: TextView
     private lateinit var analyzeButton: Button
+    private lateinit var languageButton: Button
 
     private var arabic = true
 
@@ -29,7 +30,6 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
         createInterface()
     }
 
@@ -63,7 +63,7 @@ class MainActivity : AppCompatActivity() {
 
         root.addView(subtitle)
 
-        val languageButton = Button(this).apply {
+        languageButton = Button(this).apply {
             text = "English / العربية"
             setOnClickListener {
                 arabic = !arabic
@@ -103,12 +103,7 @@ class MainActivity : AppCompatActivity() {
         root.addView(analyzeButton)
 
         resultText = TextView(this).apply {
-            text = if (arabic) {
-                "أدخل الإحداثيات واضغط «بدء التحليل»."
-            } else {
-                "Enter the coordinates and press Analyze."
-            }
-
+            text = "أدخل الإحداثيات واضغط «بدء التحليل»."
             textSize = 16f
             setTextColor(Color.DKGRAY)
             setPadding(10, 30, 10, 30)
@@ -121,7 +116,10 @@ class MainActivity : AppCompatActivity() {
         setContentView(scrollView)
     }
 
-    private fun createInput(label: String, value: String): EditText {
+    private fun createInput(
+        label: String,
+        value: String
+    ): EditText {
 
         return EditText(this).apply {
             hint = label
@@ -141,19 +139,28 @@ class MainActivity : AppCompatActivity() {
     private fun updateLanguage() {
 
         if (arabic) {
+            languageButton.text = "English / العربية"
             analyzeButton.text = "بدء التحليل / Analyze"
-            resultText.text = "أدخل الإحداثيات واضغط «بدء التحليل»."
+            resultText.text =
+                "أدخل الإحداثيات واضغط «بدء التحليل»."
         } else {
+            languageButton.text = "العربية / English"
             analyzeButton.text = "Analyze / بدء التحليل"
-            resultText.text = "Enter the coordinates and press Analyze."
+            resultText.text =
+                "Enter the coordinates and press Analyze."
         }
     }
 
     private fun startAnalysis() {
 
-        val latitude = latitudeInput.text.toString().trim()
-        val longitude = longitudeInput.text.toString().trim()
-        val radius = radiusInput.text.toString().trim()
+        val latitude =
+            latitudeInput.text.toString().trim()
+
+        val longitude =
+            longitudeInput.text.toString().trim()
+
+        val radius =
+            radiusInput.text.toString().trim()
 
         if (latitude.isEmpty() || longitude.isEmpty()) {
 
@@ -181,7 +188,9 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
-        if (lat !in -90.0..90.0 || lon !in -180.0..180.0) {
+        if (lat !in -90.0..90.0 ||
+            lon !in -180.0..180.0
+        ) {
 
             resultText.text = if (arabic) {
                 "⚠️ خط العرض أو خط الطول خارج النطاق الصحيح."
@@ -206,12 +215,16 @@ class MainActivity : AppCompatActivity() {
         analyzeButton.isEnabled = false
 
         resultText.text = if (arabic) {
-            "⏳ جارٍ الاتصال بخادم التحليل...\n\nقد يستغرق تحليل صور الأقمار الصناعية بعض الوقت."
+            "⏳ جارٍ الاتصال بخادم التحليل...\n\n" +
+                    "قد يستغرق تحليل صور الأقمار الصناعية بعض الوقت."
         } else {
-            "⏳ Connecting to the analysis server...\n\nSatellite analysis may take some time."
+            "⏳ Connecting to the analysis server...\n\n" +
+                    "Satellite analysis may take some time."
         }
 
         Thread {
+
+            var connection: HttpURLConnection? = null
 
             try {
 
@@ -223,18 +236,17 @@ class MainActivity : AppCompatActivity() {
 
                 val url = URL(apiUrl)
 
-                val connection =
+                connection =
                     url.openConnection() as HttpURLConnection
 
                 connection.requestMethod = "POST"
                 connection.connectTimeout = 30000
                 connection.readTimeout = 180000
-
                 connection.doOutput = true
 
                 connection.setRequestProperty(
                     "Content-Type",
-                    "application/json"
+                    "application/json; charset=UTF-8"
                 )
 
                 connection.setRequestProperty(
@@ -245,13 +257,14 @@ class MainActivity : AppCompatActivity() {
                 connection.outputStream.use { output ->
 
                     output.write(
-                        jsonRequest.toString().toByteArray(
-                            Charsets.UTF_8
-                        )
+                        jsonRequest
+                            .toString()
+                            .toByteArray(Charsets.UTF_8)
                     )
                 }
 
-                val responseCode = connection.responseCode
+                val responseCode =
+                    connection.responseCode
 
                 val responseText =
                     if (responseCode in 200..299) {
@@ -265,4 +278,78 @@ class MainActivity : AppCompatActivity() {
                         connection.errorStream
                             ?.bufferedReader()
                             ?.use { it.readText() }
-                           
+                            ?: "Unknown server error"
+                    }
+
+                runOnUiThread {
+
+                    analyzeButton.isEnabled = true
+
+                    if (responseCode in 200..299) {
+
+                        resultText.text =
+                            formatAnalysisResult(responseText)
+
+                    } else {
+
+                        resultText.text = if (arabic) {
+                            "❌ فشل التحليل.\n\n" +
+                                    "رمز الخادم: $responseCode\n\n" +
+                                    responseText
+                        } else {
+                            "❌ Analysis failed.\n\n" +
+                                    "Server code: $responseCode\n\n" +
+                                    responseText
+                        }
+                    }
+                }
+
+            } catch (e: Exception) {
+
+                runOnUiThread {
+
+                    analyzeButton.isEnabled = true
+
+                    resultText.text = if (arabic) {
+                        "❌ تعذر الاتصال بخادم التحليل.\n\n" +
+                                "الخطأ:\n${e.message ?: "خطأ غير معروف"}"
+                    } else {
+                        "❌ Unable to connect to the analysis server.\n\n" +
+                                "Error:\n${e.message ?: "Unknown error"}"
+                    }
+                }
+
+            } finally {
+
+                connection?.disconnect()
+            }
+
+        }.start()
+    }
+
+    private fun formatAnalysisResult(
+        responseText: String
+    ): String {
+
+        return try {
+
+            val json = JSONObject(responseText)
+
+            val builder = StringBuilder()
+
+            if (arabic) {
+
+                builder.append("✅ اكتمل التحليل\n\n")
+
+                appendJsonValue(
+                    builder,
+                    json,
+                    "final_score",
+                    "النتيجة النهائية"
+                )
+
+                appendJsonValue(
+                    builder,
+                    json,
+                    "score",
+                    "النت
