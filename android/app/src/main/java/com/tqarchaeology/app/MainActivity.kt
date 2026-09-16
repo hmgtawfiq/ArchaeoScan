@@ -14,8 +14,10 @@ import androidx.appcompat.app.AppCompatActivity
 
 import org.json.JSONObject
 import org.osmdroid.config.Configuration
+import org.osmdroid.tileprovider.tilesource.OnlineTileSourceBase
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
+import org.osmdroid.util.MapTileIndex
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Marker
 
@@ -38,103 +40,180 @@ class MainActivity : AppCompatActivity() {
     private val apiUrl =
         "https://tq-archaeology-api.onrender.com/api/analyze"
 
+    private val satelliteSource =
+        object : OnlineTileSourceBase(
+            "TQ Satellite",
+            1,
+            19,
+            256,
+            ".jpg",
+            arrayOf(
+                "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/"
+            ),
+            "Esri World Imagery"
+        ) {
+
+            override fun getTileURLString(
+                pMapTileIndex: Long
+            ): String {
+
+                val zoom =
+                    MapTileIndex.getZoom(
+                        pMapTileIndex
+                    )
+
+                val x =
+                    MapTileIndex.getX(
+                        pMapTileIndex
+                    )
+
+                val y =
+                    MapTileIndex.getY(
+                        pMapTileIndex
+                    )
+
+                return "${baseUrl}$zoom/$y/$x.jpg"
+            }
+        }
+
     override fun onCreate(
         savedInstanceState: Bundle?
     ) {
-        super.onCreate(savedInstanceState)
+        super.onCreate(
+            savedInstanceState
+        )
 
         Configuration.getInstance()
-            .userAgentValue = packageName
+            .userAgentValue =
+            packageName
 
         createInterface()
     }
 
     private fun createInterface() {
 
-        val root = LinearLayout(this).apply {
-            orientation =
-                LinearLayout.VERTICAL
+        val root =
+            LinearLayout(this).apply {
 
-            setBackgroundColor(
-                Color.WHITE
-            )
-        }
+                orientation =
+                    LinearLayout.VERTICAL
 
-        val title = TextView(this).apply {
+                setBackgroundColor(
+                    Color.WHITE
+                )
+            }
 
-            text =
-                "TQ Archaeology"
+        val title =
+            TextView(this).apply {
 
-            textSize = 28f
+                text =
+                    "TQ Archaeology"
 
-            gravity =
-                Gravity.CENTER
+                textSize = 28f
 
-            setTextColor(
-                Color.rgb(30, 30, 30)
-            )
+                gravity =
+                    Gravity.CENTER
 
-            setPadding(
-                10,
-                20,
-                10,
-                5
-            )
-        }
+                setTextColor(
+                    Color.rgb(
+                        30,
+                        30,
+                        30
+                    )
+                )
+
+                setPadding(
+                    10,
+                    20,
+                    10,
+                    5
+                )
+            }
 
         root.addView(title)
 
-        val subtitle = TextView(this).apply {
+        val subtitle =
+            TextView(this).apply {
 
-            text =
-                "اختيار موقع الدراسة وتحليل المؤشرات"
+                text =
+                    "حدد موقع الدراسة من صورة الأقمار الصناعية"
 
-            textSize = 15f
+                textSize = 15f
 
-            gravity =
-                Gravity.CENTER
+                gravity =
+                    Gravity.CENTER
 
-            setTextColor(
-                Color.DKGRAY
-            )
+                setTextColor(
+                    Color.DKGRAY
+                )
 
-            setPadding(
-                10,
-                0,
-                10,
-                15
-            )
-        }
+                setPadding(
+                    10,
+                    0,
+                    10,
+                    12
+                )
+            }
 
         root.addView(subtitle)
 
-        mapView = MapView(this).apply {
+        mapView =
+            MapView(this).apply {
 
-            setTileSource(
-                TileSourceFactory.MAPNIK
-            )
-
-            setMultiTouchControls(
-                true
-            )
-
-            controller.setZoom(
-                12.0
-            )
-
-            controller.setCenter(
-                selectedPoint
-            )
-
-            layoutParams =
-                LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT,
-                    0,
-                    1f
+                setTileSource(
+                    satelliteSource
                 )
-        }
 
-        root.addView(mapView)
+                setMultiTouchControls(
+                    true
+                )
+
+                controller.setZoom(
+                    12.0
+                )
+
+                controller.setCenter(
+                    selectedPoint
+                )
+
+                layoutParams =
+                    LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        0,
+                        1f
+                    )
+            }
+
+        root.addView(
+            mapView
+        )
+
+        val attribution =
+            TextView(this).apply {
+
+                text =
+                    "© Esri, Maxar, Earthstar Geographics, and the GIS User Community"
+
+                textSize = 10f
+
+                gravity =
+                    Gravity.CENTER
+
+                setTextColor(
+                    Color.DKGRAY
+                )
+
+                setPadding(
+                    5,
+                    4,
+                    5,
+                    4
+                )
+            }
+
+        root.addView(
+            attribution
+        )
 
         val infoLayout =
             LinearLayout(this).apply {
@@ -144,7 +223,7 @@ class MainActivity : AppCompatActivity() {
 
                 setPadding(
                     20,
-                    10,
+                    8,
                     20,
                     10
                 )
@@ -216,7 +295,9 @@ class MainActivity : AppCompatActivity() {
             infoLayout
         )
 
-        setContentView(root)
+        setContentView(
+            root
+        )
 
         addMarker(
             selectedPoint
@@ -253,7 +334,9 @@ class MainActivity : AppCompatActivity() {
 
         selectedMarker?.let {
 
-            mapView.overlays.remove(it)
+            mapView.overlays.remove(
+                it
+            )
         }
 
         val marker =
@@ -279,7 +362,7 @@ class MainActivity : AppCompatActivity() {
 
         mapView.invalidate()
     }
-        private fun startAnalysis() {
+       private fun startAnalysis() {
 
         val radius =
             radiusInput.text
@@ -300,7 +383,7 @@ class MainActivity : AppCompatActivity() {
             false
 
         analyzeButton.text =
-            "⏳ جارٍ التحليل..."
+            "⏳ جارٍ تحليل الموقع..."
 
         val latitude =
             selectedPoint.latitude
@@ -449,8 +532,8 @@ class MainActivity : AppCompatActivity() {
             }
 
         }.start()
-    }
-           private fun showAnalysisResult(
+    } 
+          private fun showAnalysisResult(
         responseText: String
     ) {
 
@@ -573,7 +656,7 @@ class MainActivity : AppCompatActivity() {
                 .show()
         }
     } 
-              override fun onResume() {
+        override fun onResume() {
         super.onResume()
         mapView.onResume()
     }
@@ -582,5 +665,4 @@ class MainActivity : AppCompatActivity() {
         super.onPause()
         mapView.onPause()
     }
-} 
-    
+}      
